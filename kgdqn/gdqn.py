@@ -9,7 +9,11 @@ import spacy
 
 import logging
 import textworld
+import textworld.gym
+import gym
 import matplotlib.pyplot as plt
+
+import re
 
 from representations import StateNAction
 from utils.schedule import *
@@ -25,6 +29,15 @@ import itertools
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+def clean_game_state(state):
+    lines = state.split("\n")
+    cur = [a.strip() for a in lines]
+    cur = ' '.join(cur).strip().replace('\n', '').replace('---------', '')
+    cur = re.sub("(?<=-\=).*?(?=\=-)", '', cur)
+    cur = re.sub('[$_\\|/>]', '', cur)
+    cur = cur.replace("-==-", '').strip()
+    return cur  
+
 class KGDQNTrainer(object):
     
     def __init__(self, game, params):
@@ -36,7 +49,10 @@ class KGDQNTrainer(object):
         logging.basicConfig(filename='logs/' + self.filename + '.log', filemode='w')
         logging.warning("Parameters", params)
 
-        self.env = textworld.start(game)
+        #self.env = textworld.start(game)
+        request_infos = textworld.EnvInfos(admissible_commands=True, last_action = True, game = True, description=True, entities=True, facts = True, extras=["recipe","walkthrough"])
+        env_id = textworld.gym.register_game(game, request_infos, max_episode_steps=10000)
+        self.env = gym.make(env_id)
         self.params = params
 
         if params['replay_buffer_type'] == 'priority':
@@ -54,8 +70,8 @@ class KGDQNTrainer(object):
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=params['lr'])
 
-        self.env.compute_intermediate_reward()
-        self.env.activate_state_tracking()
+        # self.env.compute_intermediate_reward()
+        # self.env.activate_state_tracking()
 
         self.num_frames = params['num_frames']
         self.batch_size = params['batch_size']
@@ -131,9 +147,11 @@ class KGDQNTrainer(object):
         for e_idx in range(1, self.num_episodes + 1):
             print("Episode:", e_idx)
             logging.info("Episode:" + str(e_idx))
-            self.env.enable_extra_info('description')
-            state = self.env.reset()
-            self.state.step(state.description, pruned=self.params['pruned'])
+            #self.env.enable_extra_info('description')
+            state, infos = self.env.reset()
+            obs = "DESCRIPTION: "+ infos['description'] + "INVENTORY: "+ self.env.step('inventory')[0] + infos["extra.recipe"]
+            obs = clean_game_state(obs)
+            self.state.step(obs,infos, pruned=self.params['pruned'])
             self.model.train()
             # print(state)
 
@@ -143,6 +161,7 @@ class KGDQNTrainer(object):
             prev_action = None
 
             for frame_idx in range(1, self.num_frames + 1):
+           
                 epsilon = self.e_scheduler.value(total_frames)
 
                 action, picked = self.model.act(self.state, epsilon)
@@ -154,14 +173,14 @@ class KGDQNTrainer(object):
                 logging.info('picked:' + str(picked))
                 logging.info(action_text)
 
-                next_state, reward, done = self.env.step(action_text)
+                next_state, reward, done,infos = self.env.step(action_text)
                 #if next_state.intermediate_reward == 0:
                 #    reward += -0.1
                 #else:
                 #    reward += next_state.intermediate_reward
 
-                reward += next_state.intermediate_reward
-                reward = max(-1.0, min(reward, 1.0))
+                #reward += next_state.intermediate_reward
+                #reward = max(-1.0, min(reward, 1.0))
                 print(frame_idx,action_text,reward,epsilon)
                 if reward != 0:
                     #print(action_text, reward)
@@ -193,7 +212,9 @@ class KGDQNTrainer(object):
                     completion_steps = 0
 
                 state = self.state
-                self.state.step(next_state.description, prev_action=prev_action, pruned=self.params['pruned'])
+                obs = "DESCRIPTION: "+ infos['description'] + "INVENTORY: "+ self.env.step('inventory')[0] + infos["extra.recipe"]
+                obs = clean_game_state(obs)
+                self.state.step(obs,infos, prev_action=prev_action, pruned=self.params['pruned'])
                 prev_action = action_text
                 self.replay_buffer.push(state, action, reward, self.state, done)
 

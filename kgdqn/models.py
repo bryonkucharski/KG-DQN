@@ -128,6 +128,7 @@ class StateNetwork(nn.Module):
         # else:
         #     self.pretrained_embeds = embeddings.new_tensor(embeddings.data)
         self.vocab_kge = self.load_vocab_kge()
+       
         self.vocab = self.load_vocab()
         self.init_state_ent_emb()
         self.fc1 = nn.Linear(self.state_ent_emb.weight.size()[0] * 3 * 1, 100)
@@ -153,12 +154,8 @@ class StateNetwork(nn.Module):
         self.state_ent_emb = nn.Embedding.from_pretrained(embeddings, freeze=False)
 
     def load_vocab_kge(self):
-        ent = {}
-        with open('../entity2id.tsv', 'r') as f:
-            for line in f:
-                e, eid = line.split('\t')
-                ent[int(eid.strip())] = e.strip()
-        return ent
+        ent = eval(open('../ent2id.txt', 'r').read())
+        return {v: k for k, v in ent.items()}
 
     def load_vocab(self):
         #vocab = eval(open('../w2id.txt', 'r').readline())
@@ -198,7 +195,7 @@ class ActionDrQA(nn.Module):
             self.doc_rnn.load_state_dict(inter)
 
     def forward(self, vis_state_tensor, state):
-        mask = torch.IntTensor([80] * vis_state_tensor.size(0)).to(device)
+        mask = torch.IntTensor([200] * vis_state_tensor.size(0)).to(device)
         emb_tensor = self.embeddings(vis_state_tensor)
         return self.doc_rnn(emb_tensor, mask)
 

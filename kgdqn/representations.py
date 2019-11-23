@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import itertools
 import random
 
+from utils.ground_truth_textworld import *
+
 def call_stanford_openie(sentence):
     url = "http://localhost:9000/"
     querystring = {
@@ -21,7 +23,7 @@ def call_stanford_openie(sentence):
 class StateNAction(object):
     
     def __init__(self):
-        self.graph_state = nx.DiGraph()
+        
 
         self.graph_state_rep = []
         self.visible_state = ""
@@ -45,17 +47,8 @@ class StateNAction(object):
         plt.show()
 
     def load_vocab_kge(self):
-        ent = {}
-        with open('../entity2id.tsv', 'r') as f:
-            for line in f:
-                e, eid = line.split('\t')
-                ent[e.strip()] = int(eid.strip())
-        rel = {}
-        with open('../relation2id.tsv', 'r') as f:
-            for line in f:
-                r, rid = line.split('\t')
-                rel[r.strip()] = int(rid.strip())
-
+        ent = eval(open('../ent2id.txt', 'r').read())
+        rel = eval(open('../rel2id.txt', 'r').read())
         return {'entity': ent, 'relation': rel}
 
     def load_vocab(self):
@@ -67,128 +60,125 @@ class StateNAction(object):
         all_actions = eval(open('../act2id.txt', 'r').readline())
         return all_actions
 
-    def update_state_base(self, visible_state):
-        visible_state = visible_state.split('-')
-        if len(visible_state) > 1:
-            visible_state = visible_state[2]
+    def update_state(self,visible_state,infos, prev_action=None):
+        # remove = []
+        # prev_remove = []
+        # link = []
+        # visible_state = visible_state.split('-')
+        # if len(visible_state) > 1:
+        #     visible_state = visible_state[2]
+        # dirs = ['north', 'south', 'east', 'west']
+
+        # rules = []
+        
+        # sents = call_stanford_openie(self.visible_state)['sentences']
+
+        # for ov in sents:
+        #     triple = ov['openie']
+        #     for tr in triple:
+        #         h, r, t = tr['subject'].lower(), tr['relation'].lower(), tr['object'].lower()
+
+        #         if h == 'we':
+        #             h = 'you'
+        #             if r == 'are in':
+        #                 r = "'ve entered"
+
+        #         if h == 'it':
+        #             break
+        #         rules.append((h, r, t))
+        #         print(' | ' + h + ', ' + r + ', ' + t,)
+                
+        # room = ""
+        # room_set = False
+        # for rule in rules:
+        #     h, r, t = rule
+        #     if 'entered' in r or 'are in' in r:
+        #         prev_remove.append(r)
+        #         if not room_set:
+        #             room = t
+        #             room_set = True
+        #     if 'should' in r:
+        #         prev_remove.append(r)
+        #     if 'see' in r or 'make out' in r:
+        #         link.append((r, t))
+        #         remove.append(r)
+        #     #else:
+        #     #    link.append((r, t))
+
+        # prev_room = self.room
+        # self.room = room
+        # add_rules = []
+        # if prev_action is not None:
+        #     for d in dirs:
+        #         if d in prev_action and self.room != "":
+        #             add_rules.append((prev_room, d + ' of', room))
+
+        # prev_room_subgraph = None
+        # prev_you_subgraph = None
+
+        # for sent in sent_tokenize(self.visible_state):
+        #     if 'exit' in sent or 'entranceway' in sent:
+        #         for d in dirs:
+        #             if d in sent:
+        #                 rules.append((self.room, 'has', 'exit to ' + d))
+        #             if prev_room != "":
+        #                 graph_copy = self.graph_state.copy()
+        #                 if self.graph_state.has_edge('you', prev_room):
+        #                     graph_copy.remove_edge('you', prev_room)
+        #                 else:
+        #                     print(prev_room,graph_copy.edges)
+        #                     print("Tried Removing you-{} edge and got error".format(prev_room) )
+        #                 con_cs = [graph_copy.subgraph(c) for c in nx.weakly_connected_components(graph_copy)]
+
+        #                 for con_c in con_cs:
+        #                     if prev_room in con_c.nodes:
+        #                         prev_room_subgraph = nx.induced_subgraph(graph_copy, con_c.nodes)
+        #                     if 'you' in con_c.nodes:
+        #                         prev_you_subgraph = nx.induced_subgraph(graph_copy, con_c.nodes)
+
+        # for l in link:
+        #     add_rules.append((room, l[0], l[1]))
+
+        # for rule in rules:
+        #     h, r, t = rule
+        #     if r not in remove:
+        #         add_rules.append(rule)
+        # edges = list(self.graph_state.edges)
+        # #print("add", add_rules)
+        # for edge in edges:
+        #     r = self.graph_state[edge[0]][edge[1]]['rel']
+        #     if r in prev_remove:
+        #         self.graph_state.remove_edge(*edge)
+                
+        # if prev_you_subgraph is not None:
+        #     self.graph_state.remove_edges_from(prev_you_subgraph.edges)
+
+
         self.visible_state = visible_state
-        try:
-            sents = call_stanford_openie(self.visible_state)['sentences']
-            for ov in sents:
-                triple = ov['openie']
-                for tr in triple:
-                    h, r, t = tr['subject'], tr['relation'], tr['object']
-                    self.graph_state.add_edge(h, t, rel=r)
-
-        except:
-            print(self.visible_state)
-        return
-
-    def update_state(self, visible_state, prev_action=None):
-        remove = []
-        prev_remove = []
-        link = []
-        visible_state = visible_state.split('-')
-        if len(visible_state) > 1:
-            visible_state = visible_state[2]
-        dirs = ['north', 'south', 'east', 'west']
-
-        self.visible_state = str(visible_state)
-        rules = []
-        
-        sents = call_stanford_openie(self.visible_state)['sentences']
-
-        for ov in sents:
-            triple = ov['openie']
-            for tr in triple:
-                h, r, t = tr['subject'].lower(), tr['relation'].lower(), tr['object'].lower()
-
-                if h == 'we':
-                    h = 'you'
-                    if r == 'are in':
-                        r = "'ve entered"
-
-                if h == 'it':
-                    break
-                rules.append((h, r, t))
-                print(' | ' + h + ', ' + r + ', ' + t,)
-                
-        room = ""
-        room_set = False
-        for rule in rules:
-            h, r, t = rule
-            if 'entered' in r or 'are in' in r:
-                prev_remove.append(r)
-                if not room_set:
-                    room = t
-                    room_set = True
-            if 'should' in r:
-                prev_remove.append(r)
-            if 'see' in r or 'make out' in r:
-                link.append((r, t))
-                remove.append(r)
-            #else:
-            #    link.append((r, t))
-
-        prev_room = self.room
-        self.room = room
-        add_rules = []
-        if prev_action is not None:
-            for d in dirs:
-                if d in prev_action and self.room != "":
-                    add_rules.append((prev_room, d + ' of', room))
-
-        prev_room_subgraph = None
-        prev_you_subgraph = None
-
-        for sent in sent_tokenize(self.visible_state):
-            if 'exit' in sent or 'entranceway' in sent:
-                for d in dirs:
-                    if d in sent:
-                        rules.append((self.room, 'has', 'exit to ' + d))
-                    if prev_room != "":
-                        graph_copy = self.graph_state.copy()
-                        if self.graph_state.has_edge('you', prev_room):
-                            graph_copy.remove_edge('you', prev_room)
-                        else:
-                            print(prev_room,graph_copy.edges)
-                            print("Tried Removing you-{} edge and got error".format(prev_room) )
-                        con_cs = [graph_copy.subgraph(c) for c in nx.weakly_connected_components(graph_copy)]
-
-                        for con_c in con_cs:
-                            if prev_room in con_c.nodes:
-                                prev_room_subgraph = nx.induced_subgraph(graph_copy, con_c.nodes)
-                            if 'you' in con_c.nodes:
-                                prev_you_subgraph = nx.induced_subgraph(graph_copy, con_c.nodes)
-
-        for l in link:
-            add_rules.append((room, l[0], l[1]))
-
-        for rule in rules:
-            h, r, t = rule
-            if r not in remove:
-                add_rules.append(rule)
-        edges = list(self.graph_state.edges)
-        #print("add", add_rules)
-        for edge in edges:
-            r = self.graph_state[edge[0]][edge[1]]['rel']
-            if r in prev_remove:
-                self.graph_state.remove_edge(*edge)
-                
-        if prev_you_subgraph is not None:
-            self.graph_state.remove_edges_from(prev_you_subgraph.edges)
-        
-        for rule in add_rules:
-            u = '_'.join(str(rule[0]).split())
-            v = '_'.join(str(rule[2]).split())
-            if u in self.vocab_kge['entity'].keys() and v in self.vocab_kge['entity'].keys():
-                if u != 'it' and v != 'it':
-                    self.graph_state.add_edge(rule[0], rule[2], rel=rule[1])
+        local_facts = process_local_facts(infos['game'], infos['facts'])
+        serialized_facts = serialize_facts(local_facts)
+        filtered_facts = filter_triplets(serialized_facts)
+        self.graph_state = nx.DiGraph()
+        for rule in filtered_facts:
+            if rule[0] in self.vocab_kge['entity'].keys():
+                if rule[1] in self.vocab_kge['entity'].keys():
+                    u = rule[0]
+                    if rule[2] in ['west_of','north_of','south_of','east_of']:
+                        v = rule[2]
+                        rel = rule[1]
+                    else:
+                        v = rule[1]
+                        rel = rule[2]
+                    self.graph_state.add_edge(u, v, rel=rel)
+                else:
+                    print("v not in vocab", v)
+            else:
+                print("u not in vocab", u)
                     
-        #print("pre", self.graph_state.edges)
-        if prev_room_subgraph is not None:
-            self.graph_state.add_edges_from(prev_room_subgraph.edges)
-        #print(self.graph_state.edges)
+        # #print("pre", self.graph_state.edges)
+        # if prev_room_subgraph is not None:
+        #     self.graph_state.add_edges_from(prev_room_subgraph.edges)
+        # #print(self.graph_state.edges)
 
         return
     
@@ -200,8 +190,8 @@ class StateNAction(object):
         #    ret.append(self.vocab_kge['entity']['_'.join(str(g).split())])
 
         for u, v in self.graph_state.edges:
-            u = '_'.join(str(u).split())
-            v = '_'.join(str(v).split())
+            # u = '_'.join(str(u).split())
+            # v = '_'.join(str(v).split())
             stop = False;
             if u not in self.vocab_kge['entity'].keys():
                 print(u, " NOT IN KEYS")
@@ -224,9 +214,9 @@ class StateNAction(object):
     def get_visible_state_rep_drqa(self, state_description):
         state_desc_num = []#120 * [0]
 
-        for i, token in enumerate(word_tokenize(state_description.lower())[:80]):
+        for i, token in enumerate(word_tokenize(state_description.lower())[:200]):
             if token not in self.vocab_drqa.keys():
-                #print("TOKEN ", token, " NOT IN VOCAB STATE\n","sent:", word_tokenize(state_description)[:80])
+                print("TOKEN ", token, " NOT IN VOCAB STATE\n","sent:", word_tokenize(state_description)[:200])
                 token = '<UNK>'
             state_desc_num.append(self.vocab_drqa[token])
 
@@ -237,7 +227,7 @@ class StateNAction(object):
 
         for i, token in enumerate(word_tokenize(action.lower())[:20]):
             if token not in self.vocab_drqa.keys():
-                #print("TOKEN ", token, " NOT IN VOCAB ACTION\n", "sent:", word_tokenize(action) )
+                print("TOKEN ", token, " NOT IN VOCAB ACTION\n", "sent:", word_tokenize(action) )
                 token = '<UNK>'
 
             action_desc_num[i] = self.vocab_drqa[token]
@@ -310,30 +300,30 @@ class StateNAction(object):
         ret = ret.strip()
         return ret
     
-    def step_pruned(self, visible_state, prev_action=None):
-        #import ipdb;ipdb.set_trace()
-        self.update_state(visible_state, prev_action)
+    def step_pruned(self, visible_state, infos, prev_action=None):
+        
+        self.update_state(visible_state, infos,prev_action)
 
         self.vis_pruned_actions = self.get_cur_actions_pruned()
 
         self.pruned_actions_rep = [self.get_action_rep_drqa(a) for a in self.vis_pruned_actions]
-
-        inter = self.visible_state + "The actions are:" + ",".join(self.vis_pruned_actions) + "."
+        
+        inter = self.visible_state + ". The actions are:" + ",".join(self.vis_pruned_actions) + "."
         self.drqa_input = self.get_visible_state_rep_drqa(inter)
 
         self.graph_state_rep = self.get_state_rep_kge(), self.adj_matrix
 
-    def step(self, visible_state, prev_action=None, pruned=True):
+    def step(self, visible_state,infos, prev_action=None, pruned=True):
         if pruned:
-            self.step_pruned(visible_state, prev_action)
+            self.step_pruned(visible_state,infos, prev_action)
             return
-        self.update_state(visible_state, prev_action)
+        self.update_state(visible_state,infos, prev_action)
 
         self.vis_pruned_actions = self.get_cur_actions()
 
         self.pruned_actions_rep = [self.get_action_rep_drqa(a) for a in self.vis_pruned_actions]
 
-        inter = self.visible_state + "The actions are:" + ",".join(self.vis_pruned_actions) + "."
+        inter = self.visible_state + ". The actions are:" + ",".join(self.vis_pruned_actions) + "."
         self.drqa_input = self.get_visible_state_rep_drqa(inter)
 
         self.graph_state_rep = self.get_state_rep_kge(), self.adj_matrix
