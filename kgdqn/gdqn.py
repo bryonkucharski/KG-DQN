@@ -23,6 +23,7 @@ from models import KGDQN
 import numpy as np
 import itertools
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 class KGDQNTrainer(object):
     
@@ -45,7 +46,7 @@ class KGDQNTrainer(object):
 
         params['vocab_size'] = len(self.state.vocab_drqa)
 
-        self.model = KGDQN(params, self.state.all_actions).cuda()
+        self.model = KGDQN(params, self.state.all_actions).to(device)
 
         if self.params['preload_weights']:
             self.model = torch.load(self.params['preload_file'])['model']
@@ -90,15 +91,15 @@ class KGDQNTrainer(object):
     def compute_td_loss(self):
         state, action, reward, next_state, done = self.replay_buffer.sample(self.batch_size, self.rho)
 
-        reward = torch.FloatTensor(reward).cuda()
-        done = torch.FloatTensor(1 * done).cuda()
-        action_t = torch.LongTensor(action).cuda()
+        reward = torch.FloatTensor(reward).to(device)
+        done = torch.FloatTensor(1 * done).to(device)
+        action_t = torch.LongTensor(action).to(device)
 
         q_value = self.model.forward_td_init(state, action_t)[0][0]
 
         with torch.no_grad():
             #Loop through all feasible actions for fwd
-            actions = torch.LongTensor([a.pruned_actions_rep for a in list(next_state)]).cuda()
+            actions = torch.LongTensor([a.pruned_actions_rep for a in list(next_state)]).to(device)
             fwd_init, sts = self.model.forward_td_init(next_state, actions[:, 0, :])#.unsqueeze_(0)
             next_q_values = fwd_init[0].unsqueeze_(0)
             for i in range(1, actions.size(1)):
@@ -130,6 +131,7 @@ class KGDQNTrainer(object):
         for e_idx in range(1, self.num_episodes + 1):
             print("Episode:", e_idx)
             logging.info("Episode:" + str(e_idx))
+            self.env.enable_extra_info('description')
             state = self.env.reset()
             self.state.step(state.description, pruned=self.params['pruned'])
             self.model.train()
@@ -160,8 +162,10 @@ class KGDQNTrainer(object):
 
                 reward += next_state.intermediate_reward
                 reward = max(-1.0, min(reward, 1.0))
+                print(frame_idx,action_text,reward,epsilon)
                 if reward != 0:
-                    print(action_text, reward)
+                    #print(action_text, reward)
+                    print("!!", frame_idx,action_text,reward, picked, epsilon)
 
                 logging.warning('--------')
                 logging.warning(frame_idx)

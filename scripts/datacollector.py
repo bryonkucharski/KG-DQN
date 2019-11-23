@@ -82,7 +82,8 @@ class WalkthroughAgent(textworld.Agent):
         return action
 
 
-def test_agent(agent, game, out, max_step=1000, nb_episodes=5):
+def test_agent(agent, game, out, max_step=10000, nb_episodes=1):
+   
     env = textworld.start(game)  # Start the game.
     #print(game.split("/")[-1], end="")
     env.enable_extra_info('description')
@@ -100,7 +101,7 @@ def test_agent(agent, game, out, max_step=1000, nb_episodes=5):
             # print(game_state.description)
 
             command = agent.act(game_state, reward, done)
-
+            print(no_episode, no_step, game_state.description, command)
             out.write(game_state.description)
             out.write("Actions: " + str(game_state.admissible_commands) + '\n')
             acts.update(game_state.admissible_commands)
@@ -133,7 +134,10 @@ def call_stanford_openie(sentence):
         "properties": "%7B%22annotators%22%3A%20%22openie%22%7D",
         "pipelineLanguage": "en"}
     response = requests.request("POST", url, data=sentence, params=querystring)
-    response = json.JSONDecoder().decode(response.text)
+    try:
+        response = json.JSONDecoder().decode(response.text)
+    except:
+        print(response)
     return response
 
 
@@ -143,63 +147,69 @@ def generate_data(games, type):
             acts = set()
             for g in games:
                 acts.update(test_agent(WalkthroughAgent(), game=g, out=out))
-                acts.update(test_agent(RandomAgent(), game=g, out=out))
+                #acts.update(test_agent(RandomAgent(), game=g, out=out))
             out.close()
 
-            out = open('./cleaned_random.txt', 'w')
-            with open('./random.txt', 'r') as f:
-                cur = []
-                for line in f:
-                    # print(line)
-                    if line != '---------' and "Admissible actions:" not in str(line) and "Taken action:" not in str(
-                            line):
-                        cur.append(line)
-                    else:
-                        cur = [a.strip() for a in cur]
-                        cur = ' '.join(cur).strip().replace('\n', '').replace('---------', '')
-                        cur = re.sub("(?<=-\=).*?(?=\=-)", '', cur)
-                        cur = cur.replace("-==-", '').strip()
-                        cur = '. '.join([a.strip() for a in cur.split('.')])
-                        out.write(cur + '\n')
-                        cur = []
-            out.close()
+            # act_out = open('./act2id.txt', 'w')
+            # act_out.write(str({k: i for i, k in enumerate(acts)}))
+            # act_out.close()
 
-            input_file = open("./cleaned_random.txt", 'r')
+            # out = open('./cleaned_random.txt', 'w')
+            # with open('./random.txt', 'r') as f:
+            #     cur = []
+            #     for line in f:
+            #         # print(line)
+            #         if line != '---------' and "Admissible actions:" not in str(line) and "Taken action:" not in str(
+            #                 line):
+            #             cur.append(line)
+            #         else:
+            #             cur = [a.strip() for a in cur]
+            #             cur = ' '.join(cur).strip().replace('\n', '').replace('---------', '')
+            #             cur = re.sub("(?<=-\=).*?(?=\=-)", '', cur)
+            #             cur = cur.replace("-==-", '').strip()
+            #             cur = '. '.join([a.strip() for a in cur.split('.')])
+            #             out.write(cur + '\n')
+            #             cur = []
+            # out.close()
 
-            entities = set()
-            relations = set()
+            # input_file = open("./cleaned_random.txt", 'r')
+            
 
-            sents = input_file.read()
+            # entities = set()
+            # relations = set()
 
-            try:
-                # triple = callStanfordReq(sent)['sentences'][0]['openie']
-                for ov in call_stanford_openie(sents)['sentences']:
-                    triple = ov['openie']
-                    # print(triple)
-                    # print(sent,)
-                    for tr in triple:
-                        h, r, t = tr['subject'], tr['relation'], tr['object']
-                        entities.add(h)
-                        entities.add(t)
-                        relations.add(r)
-                        # print(' | ' + h + ', ' + r + ', ' + t,)
-            except:
-                print("OpenIE error")
+            # sents = set(input_file.read().split("\n"))
 
-            act_out = open('./act2id.txt', 'w')
-            act_out.write(str({k: i for i, k in enumerate(acts)}))
-            act_out.close()
+            # try:
+            #     # triple = callStanfordReq(sent)['sentences'][0]['openie']
+            #     for i, sent in enumerate(sents):
+            #         print(i,"/", len(sents),sent)
+            #         for ov in call_stanford_openie(sent)['sentences']:
+            #             triple = ov['openie']
+            #             #print(triple)
+            #             # print(triple)
+            #             #print(sent,)
+            #             for tr in triple:
+            #                 h, r, t = tr['subject'], tr['relation'], tr['object']
+            #                 entities.add(h)
+            #                 entities.add(t)
+            #                 relations.add(r)
+            #                 print(' | ' + h + ', ' + r + ', ' + t,)
+            # except:
+            #     print("OpenIE error")
 
-            ent_out = open('./entity2id.tsv', 'w')
-            rel_out = open('./relation2id.tsv', 'w')
 
-            for i, e in enumerate(entities):
-                ent_out.write('_'.join(e.split()) + '\t' + str(i) + '\n')
 
-            ent_out.close()
-            for i, r in enumerate(relations):
-                rel_out.write('_'.join(r.split()) + '\t' + str(i) + '\n')
-            rel_out.close()
+            # ent_out = open('./entity2id.tsv', 'w')
+            # rel_out = open('./relation2id.tsv', 'w')
+
+            # for i, e in enumerate(entities):
+            #     ent_out.write('_'.join(e.split()) + '\t' + str(i) + '\n')
+
+            # ent_out.close()
+            # for i, r in enumerate(relations):
+            #     rel_out.write('_'.join(r.split()) + '\t' + str(i) + '\n')
+            # rel_out.close()
 
         elif type == 'oracle':
             out = open("./oracle.txt", 'w')
@@ -209,10 +219,10 @@ def generate_data(games, type):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Please supply directory with games and type.")
-        exit()
+    # if len(sys.argv) < 3:
+    #     print("Please supply directory with games and type.")
+    #     exit()
 
-    games = glob.glob(sys.argv[1] + '*.ulx')[:2]
-    print(games)
-    generate_data(games, sys.argv[2])
+    #games = glob.glob(sys.argv[1] + '*.ulx')[:2]
+    #print(games)
+    generate_data(['../../twgames/small/test/test_game_1095109.ulx'], sys.argv[2])

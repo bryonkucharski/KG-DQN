@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
 
-
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 class GraphAttentionLayer(nn.Module):
     """
     Simple GAT layer, similar to https://arxiv.org/abs/1710.10903
@@ -78,7 +78,7 @@ class EncoderLSTM(nn.Module):
             batch_size,
             self.hidden_size
         ), requires_grad=False)
-        return h0.cuda(), c0.cuda()
+        return h0.to(device), c0.to(device)
 
     def forward(self, inputs, lengths=0):
         embeds = self.embedding(inputs)   # (batch, seq_len, embedding_size)
@@ -164,7 +164,7 @@ class StackedBRNN(nn.Module):
 def uniform_weights(x, x_mask):
     alpha = Variable(torch.ones(x.size(0), x.size(1)))
     if x.data.is_cuda:
-        alpha = alpha.cuda()
+        alpha = alpha.to(device)
     alpha = alpha * x_mask.eq(0).float()
     alpha = alpha / alpha.sum(1).expand(alpha.size())
     return alpha

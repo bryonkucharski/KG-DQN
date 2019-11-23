@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import itertools
 import random
 
-
 def call_stanford_openie(sentence):
     url = "http://localhost:9000/"
     querystring = {
@@ -47,12 +46,12 @@ class StateNAction(object):
 
     def load_vocab_kge(self):
         ent = {}
-        with open('initialize/state/entity2id.tsv', 'r') as f:
+        with open('../entity2id.tsv', 'r') as f:
             for line in f:
                 e, eid = line.split('\t')
                 ent[e.strip()] = int(eid.strip())
         rel = {}
-        with open('initialize/state/relation2id.tsv', 'r') as f:
+        with open('../relation2id.tsv', 'r') as f:
             for line in f:
                 r, rid = line.split('\t')
                 rel[r.strip()] = int(rid.strip())
@@ -60,7 +59,8 @@ class StateNAction(object):
         return {'entity': ent, 'relation': rel}
 
     def load_vocab(self):
-        vocab = eval(open('../w2id.txt', 'r').readline())
+        lines = open('../w2id.txt', 'r').readlines()
+        vocab = { lines[i].strip():i for i in range(0, len(lines) ) }
         return vocab
 
     def load_action_dictionary(self):
@@ -111,7 +111,8 @@ class StateNAction(object):
                 if h == 'it':
                     break
                 rules.append((h, r, t))
-
+                print(' | ' + h + ', ' + r + ', ' + t,)
+                
         room = ""
         room_set = False
         for rule in rules:
@@ -147,7 +148,11 @@ class StateNAction(object):
                         rules.append((self.room, 'has', 'exit to ' + d))
                     if prev_room != "":
                         graph_copy = self.graph_state.copy()
-                        graph_copy.remove_edge('you', prev_room)
+                        if self.graph_state.has_edge('you', prev_room):
+                            graph_copy.remove_edge('you', prev_room)
+                        else:
+                            print(prev_room,graph_copy.edges)
+                            print("Tried Removing you-{} edge and got error".format(prev_room) )
                         con_cs = [graph_copy.subgraph(c) for c in nx.weakly_connected_components(graph_copy)]
 
                         for con_c in con_cs:
@@ -164,7 +169,7 @@ class StateNAction(object):
             if r not in remove:
                 add_rules.append(rule)
         edges = list(self.graph_state.edges)
-        print("add", add_rules)
+        #print("add", add_rules)
         for edge in edges:
             r = self.graph_state[edge[0]][edge[1]]['rel']
             if r in prev_remove:
@@ -179,10 +184,11 @@ class StateNAction(object):
             if u in self.vocab_kge['entity'].keys() and v in self.vocab_kge['entity'].keys():
                 if u != 'it' and v != 'it':
                     self.graph_state.add_edge(rule[0], rule[2], rel=rule[1])
-        print("pre", self.graph_state.edges)
+                    
+        #print("pre", self.graph_state.edges)
         if prev_room_subgraph is not None:
             self.graph_state.add_edges_from(prev_room_subgraph.edges)
-        print(self.graph_state.edges)
+        #print(self.graph_state.edges)
 
         return
     
@@ -196,8 +202,14 @@ class StateNAction(object):
         for u, v in self.graph_state.edges:
             u = '_'.join(str(u).split())
             v = '_'.join(str(v).split())
-
-            if u not in self.vocab_kge['entity'].keys() or v not in self.vocab_kge['entity'].keys():
+            stop = False;
+            if u not in self.vocab_kge['entity'].keys():
+                print(u, " NOT IN KEYS")
+                stop = True
+            if  v not in self.vocab_kge['entity'].keys():
+                print(v, " NOT IN KEYS")
+                stop = True
+            if stop:
                 break
 
             u_idx = self.vocab_kge['entity'][u]
@@ -212,8 +224,9 @@ class StateNAction(object):
     def get_visible_state_rep_drqa(self, state_description):
         state_desc_num = []#120 * [0]
 
-        for i, token in enumerate(word_tokenize(state_description)[:80]):
+        for i, token in enumerate(word_tokenize(state_description.lower())[:80]):
             if token not in self.vocab_drqa.keys():
+                #print("TOKEN ", token, " NOT IN VOCAB STATE\n","sent:", word_tokenize(state_description)[:80])
                 token = '<UNK>'
             state_desc_num.append(self.vocab_drqa[token])
 
@@ -222,8 +235,9 @@ class StateNAction(object):
     def get_action_rep_drqa(self, action):
         action_desc_num = 20 * [0]
 
-        for i, token in enumerate(word_tokenize(action)[:20]):
+        for i, token in enumerate(word_tokenize(action.lower())[:20]):
             if token not in self.vocab_drqa.keys():
+                #print("TOKEN ", token, " NOT IN VOCAB ACTION\n", "sent:", word_tokenize(action) )
                 token = '<UNK>'
 
             action_desc_num[i] = self.vocab_drqa[token]
@@ -297,6 +311,7 @@ class StateNAction(object):
         return ret
     
     def step_pruned(self, visible_state, prev_action=None):
+        #import ipdb;ipdb.set_trace()
         self.update_state(visible_state, prev_action)
 
         self.vis_pruned_actions = self.get_cur_actions_pruned()
