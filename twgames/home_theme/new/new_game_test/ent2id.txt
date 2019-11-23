@@ -1,0 +1,1 @@
+{'rack': 0, 'chest': 1, 'attic': 2, 'cabinet': 3, 'closed': 4, 'keycard': 5, 'exit': 6, 'open': 7, 'door': 8, 'teaspoon': 9, 'soap dispenser': 10, 'player': 11, 'scullery': 12, 'fresh laundry scented latchkey': 13, 'north_of':14,'south_of':15,'west_of':16,'east_of':17}

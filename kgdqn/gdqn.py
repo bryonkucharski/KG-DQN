@@ -149,7 +149,7 @@ class KGDQNTrainer(object):
             logging.info("Episode:" + str(e_idx))
             #self.env.enable_extra_info('description')
             state, infos = self.env.reset()
-            obs = "DESCRIPTION: "+ infos['description'] + "INVENTORY: "+ self.env.step('inventory')[0] + infos["extra.recipe"]
+            obs = "DESCRIPTION: "+ infos['description'] + "INVENTORY: "+ self.env.step('inventory')[0] #+ infos["extra.recipe"]
             obs = clean_game_state(obs)
             self.state.step(obs,infos, pruned=self.params['pruned'])
             self.model.train()
@@ -159,7 +159,7 @@ class KGDQNTrainer(object):
             completion_steps = 0
             episode_done = False
             prev_action = None
-           
+            #commands = ['go west', 'take keycard from rack' ,' go east' ,' unlock chest with keycard' , 'open chest']
             for frame_idx in range(1, self.num_frames + 1):
            
                 epsilon = self.e_scheduler.value(total_frames)
@@ -178,7 +178,7 @@ class KGDQNTrainer(object):
                 #    reward += -0.1
                 #else:
                 #    reward += next_state.intermediate_reward
-
+                
                 reward += infos['intermediate_reward']
                 reward = max(-1.0, min(reward, 1.0))
                 #import pdb;pdb.set_trace()
@@ -213,7 +213,7 @@ class KGDQNTrainer(object):
                     completion_steps = 0
 
                 state = self.state
-                obs = "DESCRIPTION: "+ infos['description'] + "INVENTORY: "+ self.env.step('inventory')[0] + infos["extra.recipe"]
+                obs = "DESCRIPTION: "+ infos['description'] + "INVENTORY: "+ self.env.step('inventory')[0] #+ infos["extra.recipe"]
                 obs = clean_game_state(obs)
                 self.state.step(obs,infos, prev_action=prev_action, pruned=self.params['pruned'])
                 prev_action = action_text

@@ -1,0 +1,1 @@
+go west > take keycard from rack > go east > unlock chest with keycard > open chest
