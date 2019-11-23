@@ -154,12 +154,12 @@ class StateNetwork(nn.Module):
         self.state_ent_emb = nn.Embedding.from_pretrained(embeddings, freeze=False)
 
     def load_vocab_kge(self):
-        ent = eval(open('../ent2id.txt', 'r').read())
+        ent = eval(open(self.params['file_path'] + 'ent2id.txt', 'r').read())
         return {v: k for k, v in ent.items()}
 
     def load_vocab(self):
         #vocab = eval(open('../w2id.txt', 'r').readline())
-        lines = open('../w2id.txt', 'r').readlines()
+        lines = open(self.params['file_path'] + 'w2id.txt', 'r').readlines()
         vocab = { lines[i].strip():i for i in range(0, len(lines) ) }
         return vocab
 

@@ -22,9 +22,9 @@ def call_stanford_openie(sentence):
 
 class StateNAction(object):
     
-    def __init__(self):
+    def __init__(self,params):
         
-
+        self.params = params
         self.graph_state_rep = []
         self.visible_state = ""
         self.drqa_input = ""
@@ -47,17 +47,17 @@ class StateNAction(object):
         plt.show()
 
     def load_vocab_kge(self):
-        ent = eval(open('../ent2id.txt', 'r').read())
-        rel = eval(open('../rel2id.txt', 'r').read())
+        ent = eval(open(self.params['file_path'] +'ent2id.txt', 'r').read())
+        rel = eval(open(self.params['file_path'] +'rel2id.txt', 'r').read())
         return {'entity': ent, 'relation': rel}
 
     def load_vocab(self):
-        lines = open('../w2id.txt', 'r').readlines()
+        lines = open(self.params['file_path'] + 'w2id.txt', 'r').readlines()
         vocab = { lines[i].strip():i for i in range(0, len(lines) ) }
         return vocab
 
     def load_action_dictionary(self):
-        all_actions = eval(open('../act2id.txt', 'r').readline())
+        all_actions = eval(open( self.params['file_path'] + 'act2id.txt', 'r').readline())
         return all_actions
 
     def update_state(self,visible_state,infos, prev_action=None):
@@ -216,7 +216,7 @@ class StateNAction(object):
 
         for i, token in enumerate(word_tokenize(state_description.lower())[:200]):
             if token not in self.vocab_drqa.keys():
-                print("TOKEN ", token, " NOT IN VOCAB STATE\n","sent:", word_tokenize(state_description)[:200])
+                #print("TOKEN ", token, " NOT IN VOCAB STATE\n","sent:", word_tokenize(state_description)[:200])
                 token = '<UNK>'
             state_desc_num.append(self.vocab_drqa[token])
 
@@ -307,7 +307,7 @@ class StateNAction(object):
         self.vis_pruned_actions = self.get_cur_actions_pruned()
 
         self.pruned_actions_rep = [self.get_action_rep_drqa(a) for a in self.vis_pruned_actions]
-        
+
         inter = self.visible_state + ". The actions are:" + ",".join(self.vis_pruned_actions) + "."
         self.drqa_input = self.get_visible_state_rep_drqa(inter)
 
@@ -322,7 +322,7 @@ class StateNAction(object):
         self.vis_pruned_actions = self.get_cur_actions()
 
         self.pruned_actions_rep = [self.get_action_rep_drqa(a) for a in self.vis_pruned_actions]
-
+        #import pdb;pdb.set_trace()
         inter = self.visible_state + ". The actions are:" + ",".join(self.vis_pruned_actions) + "."
         self.drqa_input = self.get_visible_state_rep_drqa(inter)
 

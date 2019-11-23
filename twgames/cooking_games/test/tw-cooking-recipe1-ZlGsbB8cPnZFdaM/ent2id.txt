@@ -1,0 +1,1 @@
+{'open': 0, 'kitchen': 1, 'counter': 2, 'table': 3, 'meal': 4, 'tomato': 5, 'cookbook': 6, 'player': 7, 'stove': 8, 'knife': 9, 'roasted': 10, 'egg': 11, 'raw': 12, 'diced': 13, 'fridge': 14, 'closed': 15, 'oven': 16}

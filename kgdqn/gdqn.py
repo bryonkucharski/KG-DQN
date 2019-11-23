@@ -42,7 +42,7 @@ class KGDQNTrainer(object):
     
     def __init__(self, game, params):
         self.num_episodes = params['num_episodes']
-        self.state = StateNAction()
+        self.state = StateNAction(params)
 
         self.update_freq = params['update_frequency']
         self.filename = 'kgdqn_' + '_'.join([str(v) for k, v in params.items() if 'file' not in str(k)])
@@ -50,7 +50,7 @@ class KGDQNTrainer(object):
         logging.warning("Parameters", params)
 
         #self.env = textworld.start(game)
-        request_infos = textworld.EnvInfos(admissible_commands=True, last_action = True, game = True, description=True, entities=True, facts = True, extras=["recipe","walkthrough"])
+        request_infos = textworld.EnvInfos(intermediate_reward = True, admissible_commands=True, last_action = True, game = True, description=True, entities=True, facts = True, extras=["recipe","walkthrough"])
         env_id = textworld.gym.register_game(game, request_infos, max_episode_steps=10000)
         self.env = gym.make(env_id)
         self.params = params
@@ -70,8 +70,8 @@ class KGDQNTrainer(object):
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=params['lr'])
 
-        # self.env.compute_intermediate_reward()
-        # self.env.activate_state_tracking()
+        #self.env.compute_intermediate_reward()
+        #elf.env.activate_state_tracking()
 
         self.num_frames = params['num_frames']
         self.batch_size = params['batch_size']
@@ -159,7 +159,7 @@ class KGDQNTrainer(object):
             completion_steps = 0
             episode_done = False
             prev_action = None
-
+           
             for frame_idx in range(1, self.num_frames + 1):
            
                 epsilon = self.e_scheduler.value(total_frames)
@@ -172,16 +172,17 @@ class KGDQNTrainer(object):
                 logging.info(self.state.visible_state)
                 logging.info('picked:' + str(picked))
                 logging.info(action_text)
-
+               
                 next_state, reward, done,infos = self.env.step(action_text)
                 #if next_state.intermediate_reward == 0:
                 #    reward += -0.1
                 #else:
                 #    reward += next_state.intermediate_reward
 
-                #reward += next_state.intermediate_reward
-                #reward = max(-1.0, min(reward, 1.0))
-                print(frame_idx,action_text,reward,epsilon)
+                reward += infos['intermediate_reward']
+                reward = max(-1.0, min(reward, 1.0))
+                #import pdb;pdb.set_trace()
+                print(frame_idx,action_text,reward,epsilon, infos['intermediate_reward'])
                 if reward != 0:
                     #print(action_text, reward)
                     print("!!", frame_idx,action_text,reward, picked, epsilon)
