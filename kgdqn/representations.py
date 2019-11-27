@@ -318,7 +318,7 @@ class StateNAction(object):
             self.step_pruned(visible_state,infos, prev_action)
             return
 
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         self.update_state(visible_state,infos, prev_action)
 
         self.vis_pruned_actions = self.get_cur_actions()

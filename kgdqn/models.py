@@ -101,7 +101,8 @@ class KGDQN(nn.Module):
             fwd, fwd_at = self.forward(s_t, emb_a_t, encoded_doc)
 
             max_q, max_idx = torch.max(fwd, 0)
-
+            self.q_values = fwd
+            self.maxq = max_q
             action_ids = feasible_actions_rep[max_idx]
             picked = True
         else:

@@ -1,5 +1,6 @@
 import networkx as nx
 
+import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -89,17 +90,20 @@ class KGDQNTrainer(object):
         elif params['scheduler_type'] == 'linear':
             self.e_scheduler = LinearSchedule(self.num_frames, params['e_final'])
         
-    def plot(self, frame_idx, rewards, losses, completion_steps):
+    def plot(self, frame_idx, rewards, losses, completion_steps,epsilons):
         fig = plt.figure(figsize=(20, 5))
-        plt.subplot(131)
+        plt.subplot(141)
         plt.title('frame %s. avg reward: %s' % (frame_idx, np.mean(rewards[-10:])))
         plt.plot(rewards)
-        plt.subplot(132)
+        plt.subplot(142)
         plt.title('frame %s. avg steps: %s' % (frame_idx, np.mean(completion_steps[-10:])))
         plt.plot(completion_steps)
-        plt.subplot(133)
+        plt.subplot(143)
         plt.title('loss-kgdqn')
         plt.plot(losses)
+        plt.subplot(144)
+        plt.title("epsilon")
+        plt.plot(epsilons)
         plt.figtext(0.5, 0.01, self.filename, wrap=True, horizontalalignment='center', fontsize=12)
         fig.savefig('plots/' + self.filename + '_' + str(frame_idx) + '.png')
         #plt.show()
@@ -144,6 +148,7 @@ class KGDQNTrainer(object):
 
     def train(self):
         total_frames = 0
+        epsilons = []
         for e_idx in range(1, self.num_episodes + 1):
             print("Episode:", e_idx)
             logging.info("Episode:" + str(e_idx))
@@ -163,15 +168,15 @@ class KGDQNTrainer(object):
             for frame_idx in range(1, self.num_frames + 1):
            
                 epsilon = self.e_scheduler.value(total_frames)
-
+                epsilons.append(epsilon)
                 action, picked = self.model.act(self.state, epsilon)
 
 
                 action_text = self.state.get_action_text(action)
-                logging.info('-------')
-                logging.info(self.state.visible_state)
-                logging.info('picked:' + str(picked))
-                logging.info(action_text)
+                #logging.info('-------')
+                #logging.info(self.state.visible_state)
+                #logging.info('picked:' + str(picked))
+                #logging.info(action_text)
                
                 next_state, reward, done,infos = self.env.step(action_text)
                 #if next_state.intermediate_reward == 0:
@@ -182,16 +187,20 @@ class KGDQNTrainer(object):
                 reward += infos['intermediate_reward']
                 reward = max(-1.0, min(reward, 1.0))
                 #import pdb;pdb.set_trace()
-                print(frame_idx,action_text,reward,epsilon, infos['intermediate_reward'])
+                sys.stdout.flush()
+                #print(e_idx, frame_idx,action_text,reward,epsilon, picked)
                 if reward != 0:
                     #print(action_text, reward)
-                    print("!!", frame_idx,action_text,reward, picked, epsilon)
-
-                logging.warning('--------')
-                logging.warning(frame_idx)
-                logging.warning(self.state.visible_state)
-                logging.warning(action_text)
-                logging.warning(reward)
+                    #print("!!", frame_idx,action_text,reward, picked, epsilon)
+                    print(e_idx, frame_idx,action_text,reward,epsilon, picked)
+                    logging.warning('--------')
+                    logging.warning(frame_idx)
+                    logging.warning(self.state.visible_state)
+                    logging.warning(action_text)
+                    logging.warning(reward)
+                    if picked:
+                        logging.warning(self.model.q_values)
+                        logging.warning(self.model.maxq)
 
                 episode_reward += reward
                 completion_steps += 1
@@ -225,8 +234,8 @@ class KGDQNTrainer(object):
                         self.losses.append(loss.item())
 
                 # """
-            self.plot(e_idx, self.all_rewards, self.losses, self.completion_steps)
-            if e_idx % (int(self.num_episodes / 500)) == 0:
+            self.plot(e_idx, self.all_rewards, self.losses, self.completion_steps,epsilons)
+            if e_idx % (int(self.num_episodes / 200)) == 0:
                 logging.info("Episode:" + str(e_idx))
                 # self.plot(frame_idx, self.all_rewards, self.losses, self.completion_steps)
                 parameters = {

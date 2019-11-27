@@ -237,8 +237,8 @@ def process_local_facts(info_game, info_facts):
     scope_facts = set(find_predicates_in_scope(state))
     exit_facts = set(find_exits_in_scope(state))
     inventory_facts = set(find_predicates_in_inventory(state))
-    recipe_facts = set(find_predicates_in_recipe(state))
-    return scope_facts | exit_facts | inventory_facts | recipe_facts 
+    #recipe_facts = set(find_predicates_in_recipe(state))
+    return scope_facts | exit_facts | inventory_facts #| recipe_facts 
 
 def process_facts(prev_facts, info_game, info_facts, info_last_action, cmd):
     kb = textworld.Game.deserialize(info_game).kb
